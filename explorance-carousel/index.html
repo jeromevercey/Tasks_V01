@@ -473,7 +473,9 @@
       '</li>';
     }).join("");
 
-    reel.innerHTML = ITEMS.map(function (item) {
+    // the first slide is repeated at the end so the reel can keep sliding
+    // down from the last item back to the first (seamless loop)
+    reel.innerHTML = ITEMS.concat(ITEMS[0]).map(function (item) {
       return '<div class="ex-vc__slide">' + media(item) + '</div>';
     }).join("");
     dotsEl.innerHTML = ITEMS.map(function () { return '<span class="ex-vc__dot"></span>'; }).join("");
@@ -491,12 +493,24 @@
     var paused = false;
     var inView = false;
 
-    function setActive(index) {
+    var reelPos = 0;
+    function moveReel(pos, animate) {
+      reelPos = pos;
+      reel.style.transition = animate ? "" : "none";
+      reel.style.transform = "translateY(" + (-100 * pos) + "%)";
+      if (!animate) void reel.offsetHeight;
+    }
+
+    // wrap = true when looping forward from the last item to the first
+    function setActive(index, wrap) {
       current = index;
+      var pos = wrap ? ITEMS.length : index;
+      for (var s = 0; s < slides.length; s++) {
+        slides[s].classList.toggle("is-active", s === pos);
+      }
       for (var i = 0; i < ITEMS.length; i++) {
         var on = i === index;
         items[i].classList.toggle("is-active", on);
-        slides[i].classList.toggle("is-active", on);
         dots[i].classList.toggle("is-active", on);
         tabs[i].setAttribute("aria-selected", on ? "true" : "false");
         tabs[i].tabIndex = on ? 0 : -1;
@@ -508,8 +522,19 @@
         void fill.offsetWidth;
         fill.style.animation = "";
       }
-      reel.style.transform = "translateY(" + (-100 * index) + "%)";
+      // still parked on the cloned first slide: snap to the real one
+      // (identical visual) before animating to the next position
+      if (reelPos === ITEMS.length) moveReel(0, false);
+      moveReel(pos, !reduceMotion);
     }
+
+    // after sliding onto the cloned first slide, jump back to the real one
+    reel.addEventListener("transitionend", function (e) {
+      if (e.target !== reel || reelPos !== ITEMS.length) return;
+      moveReel(0, false);
+      slides[ITEMS.length].classList.remove("is-active");
+      slides[0].classList.add("is-active");
+    });
 
     // ---- autoplay (JS timer kept in sync with the CSS progress bar) ----
     function schedule(ms) {
@@ -517,7 +542,8 @@
       startedAt = Date.now();
       remaining = ms;
       timer = setTimeout(function () {
-        setActive((current + 1) % ITEMS.length);
+        var next = (current + 1) % ITEMS.length;
+        setActive(next, next === 0);
         schedule(duration);
       }, ms);
     }
@@ -538,11 +564,16 @@
       clearTimeout(timer);
       root.classList.add("is-manual");
     }
+    // visitor picked an item: show it for a full cycle, then keep looping
+    function goTo(index) {
+      setActive(index);
+      remaining = duration;
+      if (!paused && !root.classList.contains("is-manual")) schedule(duration);
+    }
 
     tabs.forEach(function (tab, i) {
       tab.addEventListener("click", function () {
-        stopAutoplay(); // once the visitor takes control, stay put
-        setActive(i);
+        goTo(i);
       });
       tab.addEventListener("keydown", function (e) {
         var next = null;
@@ -552,8 +583,7 @@
         if (e.key === "End") next = ITEMS.length - 1;
         if (next === null) return;
         e.preventDefault();
-        stopAutoplay();
-        setActive(next);
+        goTo(next);
         tabs[next].focus();
       });
     });
