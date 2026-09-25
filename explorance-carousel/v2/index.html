@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Explorance — Employee Experience Carousel V2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ------------------------------------------------------------------
+       Brand tokens — swap these for Explorance's exact brand values.
+       ------------------------------------------------------------------ */
+    :root {
+      --x2-bg: #0b0c0e;
+      --x2-card: #1d1e21;
+      --x2-card-line: #2a2c30;
+      --x2-text: #ffffff;
+      --x2-muted: #a3a7ae;
+      --x2-faint: #6b7078;
+      --x2-accent: #00a3a1;
+      --x2-accent-2: #4f6bff;
+      --x2-gap: 24px;
+      --x2-duration: 7000ms; /* autoplay time per card */
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--x2-bg);
+      color: var(--x2-text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---------------- Section ---------------- */
+    .x2 {
+      padding: 112px 0 96px;
+      overflow: hidden; /* the peeking card is clipped at the viewport edge */
+    }
+    .x2__inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+    .x2__header {
+      max-width: 820px;
+      margin: 0 0 56px;
+    }
+    .x2__title {
+      margin: 0 0 18px;
+      font-size: clamp(30px, 3.6vw, 44px);
+      line-height: 1.12;
+      font-weight: 600;
+      letter-spacing: -.025em;
+    }
+    .x2__lead {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.6;
+      color: var(--x2-muted);
+    }
+
+    /* ---------------- Track ---------------- */
+    .x2__viewport {
+      position: relative;
+      touch-action: pan-y;
+    }
+    .x2__track {
+      display: flex;
+      gap: var(--x2-gap);
+      transition: transform .7s cubic-bezier(.65,0,.35,1);
+      will-change: transform;
+    }
+    .x2__card {
+      flex: 0 0 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+      gap: 40px;
+      padding: 40px;
+      background: var(--x2-card);
+      opacity: .35;
+      transition: opacity .6s ease;
+    }
+    .x2__card.is-active { opacity: 1; }
+    .x2__card.is-before { opacity: 0; } /* cards that slid out to the left */
+
+    /* visual (left) */
+    .x2__media {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      background:
+        radial-gradient(120% 90% at 100% 0%, rgba(79,107,255,.35), transparent 60%),
+        radial-gradient(100% 80% at 0% 100%, rgba(0,163,161,.35), transparent 60%),
+        #10233f;
+      display: grid;
+      place-items: center;
+      padding: 9%;
+    }
+    .x2__media img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* built-in mock visual used when no image URL is set */
+    .x2-mock {
+      width: 100%;
+      background: #fff;
+      color: #13243d;
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 30px 60px -20px rgba(0,0,0,.6);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .x2-mock__bar { display: flex; align-items: center; gap: 6px; }
+    .x2-mock__bar i { width: 8px; height: 8px; border-radius: 50%; background: #dfe5ee; }
+    .x2-mock__bar span { margin-left: 8px; font-size: 12px; font-weight: 600; color: #5b6b82; }
+    .x2-mock__chart { display: flex; align-items: flex-end; gap: 7px; height: 120px; }
+    .x2-mock__chart b {
+      flex: 1;
+      border-radius: 5px 5px 2px 2px;
+      background: linear-gradient(180deg, var(--x2-accent-2), var(--x2-accent));
+      transform-origin: bottom;
+    }
+    .x2__card.is-active .x2-mock__chart b { animation: x2-grow .9s cubic-bezier(.2,.7,.2,1) both; }
+    @keyframes x2-grow { from { transform: scaleY(.1); } }
+    .x2-mock__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .x2-mock__chips span {
+      font-size: 11px; font-weight: 600;
+      padding: 5px 10px; border-radius: 999px;
+      background: #f5f7fb; border: 1px solid #dfe5ee;
+    }
+
+    /* content (right) */
+    .x2__content {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .x2__quote {
+      width: 30px;
+      height: 24px;
+      color: var(--x2-faint);
+      margin-bottom: 26px;
+    }
+    .x2__kicker {
+      margin: 0 0 12px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--x2-accent);
+    }
+    .x2__text {
+      margin: 0 0 28px;
+      font-size: 19px;
+      line-height: 1.55;
+      color: var(--x2-text);
+    }
+    .x2__name {
+      margin: 0 0 6px;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -.01em;
+    }
+    .x2__role {
+      margin: 0;
+      font-size: 15px;
+      color: var(--x2-muted);
+    }
+    .x2__link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 18px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--x2-text);
+      text-decoration: none;
+      border-bottom: 1px solid var(--x2-faint);
+      padding-bottom: 2px;
+      align-self: flex-start;
+    }
+    .x2__link:hover { border-color: var(--x2-text); }
+    .x2__stat {
+      margin-top: auto;
+      padding-top: 32px;
+    }
+    .x2__stat strong {
+      display: block;
+      font-size: clamp(40px, 4.4vw, 58px);
+      line-height: 1;
+      font-weight: 600;
+      letter-spacing: -.03em;
+    }
+    .x2__stat span {
+      display: block;
+      margin-top: 10px;
+      font-size: 15px;
+      color: var(--x2-muted);
+    }
+
+    /* ---------------- Controls ---------------- */
+    .x2__controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 56px;
+    }
+    .x2__progress {
+      display: flex;
+      gap: 8px;
+    }
+    .x2__seg {
+      all: unset;
+      position: relative;
+      width: 38px;
+      height: 3px;
+      padding: 10px 0; /* bigger click target */
+      background-clip: content-box;
+      background-color: #33363b;
+      cursor: pointer;
+    }
+    .x2__seg:focus-visible { outline: 2px solid var(--x2-accent); outline-offset: 2px; }
+    .x2__seg i {
+      position: absolute;
+      left: 0; right: 0; top: 10px;
+      height: 3px;
+      background: var(--x2-text);
+      transform: scaleX(0);
+      transform-origin: left;
+    }
+    .x2__seg.is-done i { transform: scaleX(1); }
+    .x2__seg.is-active i { animation: x2-fill var(--x2-duration) linear forwards; }
+    .x2.is-paused .x2__seg.is-active i { animation-play-state: paused; }
+    .x2.is-static .x2__seg.is-active i { animation: none; transform: scaleX(1); }
+    @keyframes x2-fill { to { transform: scaleX(1); } }
+
+    .x2__arrows { display: flex; gap: 10px; }
+    .x2__arrow {
+      all: unset;
+      box-sizing: border-box;
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #4a4d53;
+      color: var(--x2-text);
+      cursor: pointer;
+      transition: border-color .2s ease, background .2s ease;
+    }
+    .x2__arrow:hover { border-color: var(--x2-text); background: rgba(255,255,255,.06); }
+    .x2__arrow:focus-visible { outline: 2px solid var(--x2-accent); outline-offset: 2px; }
+
+    /* ---------------- Responsive ---------------- */
+    @media (max-width: 900px) {
+      .x2 { padding: 72px 0 64px; }
+      .x2__inner { padding: 0 16px; }
+      .x2__header { margin-bottom: 36px; }
+      .x2__card {
+        flex-basis: 88%;
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding: 20px;
+      }
+      .x2__media { aspect-ratio: 4 / 3; padding: 6%; }
+      .x2-mock { padding: 16px; gap: 12px; }
+      .x2-mock__chart { height: 90px; }
+      .x2-mock__chips { display: none; }
+      .x2__text { font-size: 17px; }
+      .x2__controls { margin-top: 32px; }
+      .x2__seg { width: 26px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .x2__track, .x2__card { transition: none; }
+      .x2__card.is-active .x2-mock__chart b { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <section class="x2" id="x2" aria-roledescription="carousel" aria-labelledby="x2-title">
+    <div class="x2__inner">
+      <header class="x2__header">
+        <h2 class="x2__title" id="x2-title">Build an Employee Experience that Boosts Revenue and Grows Your Business</h2>
+        <p class="x2__lead">Use the voice of your employees to future-proof your business and fuel effective professional development with dynamic feedback analysis.</p>
+      </header>
+
+      <div class="x2__viewport">
+        <div class="x2__track" aria-live="polite"></div>
+      </div>
+
+      <div class="x2__controls">
+        <div class="x2__progress" role="tablist" aria-label="Choose a slide"></div>
+        <div class="x2__arrows">
+          <button class="x2__arrow" data-dir="-1" aria-label="Previous slide">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 3 5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="x2__arrow" data-dir="1" aria-label="Next slide">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m6 3 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+  (function () {
+    /* --------------------------------------------------------------
+       CAROUSEL CONTENT — edit this array.
+       - text:  the big statement
+       - quote: true shows quote marks — use it for a real customer
+         testimonial, with name / role set to the person and their title
+       - name / role: the solution name (or who is speaking)
+       - image: optional photo URL; when empty, a mock visual is drawn
+       - stat / statLabel: the large number at the bottom
+       -------------------------------------------------------------- */
+    var ITEMS = [
+      {
+        kicker: "Employee engagement",
+        text: "Run engagement and pulse surveys that employees actually answer, then turn the results into clear action plans that keep your top performers.",
+        name: "Measure and boost engagement",
+        role: "Pulse surveys · Action plans · Benchmarks",
+        cta: "Explore employee engagement",
+        href: "https://www.explorance.com/solutions/employee-engagement/",
+        image: "",
+        stat: "+17%",
+        statLabel: "Productivity with highly engaged employees",
+        mock: { label: "Engagement dashboard", bars: [38, 52, 47, 64, 71, 83, 92], chips: ["Pulse", "eNPS", "Action plans"] }
+      },
+      {
+        kicker: "Employee journey",
+        text: "Capture feedback across every moment that matters — hiring, onboarding, development and exit — and fix friction before it becomes turnover.",
+        name: "Improve the moments that matter",
+        role: "Hiring · Onboarding · Exit",
+        cta: "Explore employee experience",
+        href: "https://www.explorance.com/solutions/employee-experience/",
+        image: "",
+        stat: "-59%",
+        statLabel: "Voluntary turnover",
+        mock: { label: "Lifecycle insights", bars: [90, 78, 70, 58, 49, 41, 36], chips: ["Hiring", "Onboarding", "Exit"] }
+      },
+      {
+        kicker: "360° feedback",
+        text: "Give managers a well-rounded view of their strengths and blind spots, and fuel effective professional development with 360-degree feedback.",
+        name: "Develop better leaders",
+        role: "Self · Peers · Direct reports · Manager",
+        cta: "Explore 360 feedback",
+        href: "https://www.explorance.com/lp/360-feedback-platform",
+        image: "",
+        stat: "360°",
+        statLabel: "View of every leader",
+        mock: { label: "360° leadership report", bars: [60, 72, 55, 80, 68, 88, 76], chips: ["Self", "Peers", "Manager"] }
+      },
+      {
+        kicker: "AI comment analysis",
+        text: "Purpose-built AI analyzes hundreds of thousands of open-ended comments at once to surface themes, sentiment and recommendations in minutes.",
+        name: "Hear every comment",
+        role: "Themes · Sentiment · Recommendations",
+        cta: "Explore AI comment analysis",
+        href: "https://explorance.com/solutions/employee-experience-management/stepwise-feedback/",
+        image: "",
+        stat: "250K+",
+        statLabel: "Comments analyzed at once",
+        mock: { label: "Comment analysis", bars: [30, 45, 62, 58, 74, 86, 95], chips: ["Themes", "Sentiment"] }
+      },
+      {
+        kicker: "Integrations",
+        text: "Pull key organizational data from your existing HRIS, LMS or CRM with seamless integrations, so insights reach the right people without extra work.",
+        name: "Connect the systems you already use",
+        role: "HRIS · LMS · CRM",
+        cta: "See integrations",
+        href: "https://www.explorance.com/solutions/employee-experience/",
+        image: "",
+        stat: "+21%",
+        statLabel: "Profitability with engaged teams",
+        mock: { label: "Integrations", bars: [44, 50, 57, 63, 70, 78, 85], chips: ["HRIS", "LMS", "CRM"] }
+      }
+    ];
+
+    var N = ITEMS.length;
+    var root = document.getElementById("x2");
+    var viewport = root.querySelector(".x2__viewport");
+    var track = root.querySelector(".x2__track");
+    var progress = root.querySelector(".x2__progress");
+    var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var duration = parseFloat(getComputedStyle(root).getPropertyValue("--x2-duration")) || 7000;
+
+    var quoteSvg = '<svg class="x2__quote" viewBox="0 0 30 24" fill="currentColor" aria-hidden="true"><path d="M0 24V14.4C0 6.6 4.2 1.8 11.4 0l1.4 3.4C8.6 4.8 6.6 7.6 6.4 11.2H12V24H0Zm17 0V14.4C17 6.6 21.2 1.8 28.4 0l1.4 3.4c-4.2 1.4-6.2 4.2-6.4 7.8H29V24H17Z"/></svg>';
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    function media(item) {
+      if (item.image) return '<img src="' + esc(item.image) + '" alt="" loading="lazy" />';
+      var m = item.mock;
+      return '<div class="x2-mock">' +
+        '<div class="x2-mock__bar"><i></i><i></i><i></i><span>' + esc(m.label) + '</span></div>' +
+        '<div class="x2-mock__chart">' + m.bars.map(function (h, i) {
+          return '<b style="height:' + h + '%;animation-delay:' + (i * 60) + 'ms"></b>';
+        }).join("") + '</div>' +
+        '<div class="x2-mock__chips">' + m.chips.map(function (c) { return '<span>' + esc(c) + '</span>'; }).join("") + '</div>' +
+      '</div>';
+    }
+
+    function card(item, i, clone) {
+      return '<article class="x2__card" data-index="' + i + '"' +
+        (clone ? ' aria-hidden="true"' : ' aria-roledescription="slide" aria-label="' + (i + 1) + ' of ' + N + '"') + '>' +
+        '<div class="x2__media">' + media(item) + '</div>' +
+        '<div class="x2__content">' +
+          (item.quote ? quoteSvg : '') +
+          '<p class="x2__kicker">' + esc(item.kicker) + '</p>' +
+          '<p class="x2__text">' + esc(item.text) + '</p>' +
+          '<p class="x2__name">' + esc(item.name) + '</p>' +
+          '<p class="x2__role">' + esc(item.role) + '</p>' +
+          '<a class="x2__link" href="' + esc(item.href) + '"' + (clone ? ' tabindex="-1"' : '') + '>' + esc(item.cta) +
+            ' <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10m0 0L9 4m4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>' +
+          '<div class="x2__stat"><strong>' + esc(item.stat) + '</strong><span>' + esc(item.statLabel) + '</span></div>' +
+        '</div>' +
+      '</article>';
+    }
+
+    // ---- render: one full set of clones before and after for an endless loop ----
+    var html = "";
+    for (var set = 0; set < 3; set++) {
+      ITEMS.forEach(function (item, i) { html += card(item, i, set !== 1); });
+    }
+    track.innerHTML = html;
+    progress.innerHTML = ITEMS.map(function (item, i) {
+      return '<button class="x2__seg" role="tab" aria-label="Slide ' + (i + 1) + '"><i></i></button>';
+    }).join("");
+
+    var cards = track.querySelectorAll(".x2__card");
+    var segs = progress.querySelectorAll(".x2__seg");
+
+    var pos = N;        // index in the rendered track (middle set = real cards)
+    var current = 0;    // 0..N-1
+    var timer = null, remaining = duration, startedAt = 0;
+    var paused = true, inView = false, hovering = false;
+
+    function step() {
+      return cards[0].getBoundingClientRect().width + parseFloat(getComputedStyle(track).columnGap || 24);
+    }
+    function place(animate) {
+      track.style.transition = animate && !reduceMotion ? "" : "none";
+      track.style.transform = "translateX(" + (-pos * step()) + "px)";
+      if (!animate) void track.offsetHeight;
+    }
+    // bring pos back into the middle set without any visible change
+    function normalize() {
+      if (pos >= 2 * N || pos < N) {
+        pos = N + ((pos % N) + N) % N;
+        place(false);
+      }
+    }
+
+    function render() {
+      current = ((pos % N) + N) % N;
+      cards.forEach(function (c, i) {
+        var on = i === pos;
+        c.classList.toggle("is-active", on);
+        c.classList.toggle("is-before", i < pos);
+        c.querySelectorAll("a").forEach(function (a) { if (!c.hasAttribute("aria-hidden")) a.tabIndex = on ? 0 : -1; });
+      });
+      segs.forEach(function (s, i) {
+        s.classList.toggle("is-active", i === current);
+        s.classList.toggle("is-done", i < current);
+        s.setAttribute("aria-selected", i === current ? "true" : "false");
+        var fill = s.querySelector("i");
+        fill.style.animation = "none";
+        void fill.offsetWidth;
+        fill.style.animation = "";
+      });
+    }
+
+    // move by delta cards (+1 next, -1 previous)
+    function go(delta) {
+      normalize();               // in case the last transitionend never fired
+      pos += delta;
+      place(true);
+      render();
+      remaining = duration;
+      if (!paused) schedule(duration);
+    }
+    function next() { go(1); }
+    function prev() { go(-1); }
+    function goTo(i) { go(i - current); }
+
+    track.addEventListener("transitionend", function (e) {
+      if (e.target === track) normalize();
+    });
+
+    // ---- autoplay, kept in sync with the CSS progress segment ----
+    function schedule(ms) {
+      clearTimeout(timer);
+      startedAt = Date.now();
+      remaining = ms;
+      timer = setTimeout(next, ms);
+    }
+    function updatePlayState() {
+      var shouldPlay = inView && !hovering && !reduceMotion;
+      if (shouldPlay && paused) {
+        paused = false;
+        root.classList.remove("is-paused");
+        schedule(remaining);
+      } else if (!shouldPlay && !paused) {
+        paused = true;
+        clearTimeout(timer);
+        remaining = Math.max(0, remaining - (Date.now() - startedAt));
+        root.classList.add("is-paused");
+      }
+    }
+
+    // ---- controls ----
+    root.querySelectorAll(".x2__arrow").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        btn.dataset.dir === "1" ? next() : prev();
+      });
+    });
+    segs.forEach(function (s, i) { s.addEventListener("click", function () { goTo(i); }); });
+    root.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") { e.preventDefault(); next(); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); prev(); }
+    });
+    // clicking a peeking card brings it forward
+    track.addEventListener("click", function (e) {
+      var c = e.target.closest(".x2__card");
+      if (!c || c.classList.contains("is-active") || e.target.closest("a")) return;
+      var i = Array.prototype.indexOf.call(cards, c);
+      if (i === pos + 1) next(); else if (i === pos - 1) prev();
+    });
+
+    // swipe on touch screens
+    var startX = null, startY = null;
+    viewport.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse") return;
+      startX = e.clientX; startY = e.clientY;
+    });
+    viewport.addEventListener("pointerup", function (e) {
+      if (startX === null) return;
+      var dx = e.clientX - startX, dy = e.clientY - startY;
+      startX = null;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) dx < 0 ? next() : prev();
+    });
+    viewport.addEventListener("pointercancel", function () { startX = null; });
+
+    // pause while the visitor hovers the cards (not the controls) or when off-screen
+    viewport.addEventListener("mouseenter", function () { hovering = true; updatePlayState(); });
+    viewport.addEventListener("mouseleave", function () { hovering = false; updatePlayState(); });
+
+    window.addEventListener("resize", function () { place(false); });
+
+    // ---- init ----
+    root.classList.add("is-paused");
+    if (reduceMotion) root.classList.add("is-static");
+    place(false);
+    render();
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries) {
+        inView = entries[0].isIntersecting;
+        updatePlayState();
+      }, { threshold: 0.35 }).observe(root);
+    } else {
+      inView = true;
+      updatePlayState();
+    }
+  })();
+  </script>
+</body>
+</html>
